@@ -1,0 +1,20 @@
+name: extractor
+version: 1.0.0
+description: scraper for dramacool
+homepage: https://github.com/Toasty360/DramaExtractor
+repository:
+  type: git
+  url: git://github.com/Toasty360/DramaExtractor.git
+
+environment:
+  sdk: ">=3.0.5 <4.0.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  dio:
+  html:
+  toast:
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

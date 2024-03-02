@@ -435,19 +435,6 @@ class Scraper {
     } catch (e) {}
     return {"src": "not found"};
   }
-
-  Future<String> makePlay() async {
-    var a = '';
-    var t = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    var n = t.length;
-
-    for (var o = 0; o < 10; o++) {
-      a += t[DateTime.now().millisecondsSinceEpoch % n];
-    }
-
-    return a +
-        "?token=t1e1n0k782yaf8zvjswxli6g&expiry=${DateTime.now().millisecondsSinceEpoch}";
-  }
 }
 
 class Drama {

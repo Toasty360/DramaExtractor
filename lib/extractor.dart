@@ -54,12 +54,6 @@ class Scraper {
               .text
               .replaceFirst("Status:", "")
               .trim()
-          ..genre = document
-              .querySelectorAll(".info p")
-              .last
-              .querySelectorAll("a")
-              .map((e) => e.text)
-              .toList()
           ..actors = document
               .querySelectorAll(".slider-star > div")
               .map((element) => Actor(id: '')
@@ -77,20 +71,42 @@ class Scraper {
                 ..type = element.querySelector(".type")?.text.trim() ?? ""
                 ..date = element.querySelector(".time")?.text.trim() ?? "")
               .toList();
+        if (info.totalEpisodes == 0) {
+          info.genre = document
+              .querySelectorAll(".info p")
+              .last
+              .previousElementSibling!
+              .querySelectorAll("a")
+              .map((e) => e.text)
+              .toList();
+          info.airs = document
+              .querySelectorAll(".info p")
+              .last
+              .text
+              .split(":")
+              .last
+              .trim();
+        } else {
+          info.genre = document
+              .querySelectorAll(".info p")
+              .last
+              .querySelectorAll("a")
+              .map((e) => e.text)
+              .toList();
+        }
         document.querySelectorAll(".info p").forEach((element) {
           if (element.querySelector("span") == null && element.text != "") {
             if (info.description.runtimeType != Null) {
-              info.description = info.description! + element.text;
+              info.description = info.description! + "\n" + element.text;
             } else {
               info.description = element.text;
             }
           }
         });
+
         return info;
       } else {}
-    } catch (e) {
-      print(e);
-    }
+    } catch (e) {}
     return Drama();
   }
 
@@ -213,9 +229,7 @@ class Scraper {
 
         return data;
       }
-    } catch (e) {
-      print(e);
-    }
+    } catch (e) {}
 
     return [];
   }
@@ -357,7 +371,6 @@ class Scraper {
           return _DoodStream(response.data!);
       }
     } catch (e) {
-      print(e);
       return {"src": "not found"};
     }
   }
@@ -369,7 +382,7 @@ class Scraper {
               .firstMatch(s);
       if (match.runtimeType != Null) {
         var u = match![1];
-        print(u.runtimeType);
+
         var v = await dio.get(u!,
             options: Options(
               headers: {'Referer': baseURL},
@@ -423,7 +436,7 @@ class Scraper {
                 headers: {'Referer': doodybaseurl},
               )))
           .data;
-      print(RegExp(r'\?token=([^&]+)').firstMatch(dood)![1]);
+
       return {
         "src": dood.contains("src: data + makePlay()")
             ? resp +
@@ -454,6 +467,7 @@ class Drama {
   String? type;
   double? epsNumber;
   List<Actor>? actors;
+  String? airs;
 
   Drama({
     this.title,

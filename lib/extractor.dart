@@ -334,7 +334,7 @@ class Scraper {
     return actor;
   }
 
-  Future<Map> fetchStreamingLinks(String id) async {
+  Future<Map> fetchStreamingLinks(String id, StreamProvider provider) async {
     try {
       final response = await dio.get(
         '$baseURL/$id',
@@ -348,23 +348,105 @@ class Scraper {
         ),
       );
 
-      final u =
-          RegExp(r'<li class="streamwish" rel="\d+" data-video="([^"]+)">')
-              .firstMatch(response.data!)![1];
-      var v = await dio.get(u!,
-          options: Options(
-            headers: {'Referer': baseURL},
-          ));
-      var t = await v.data;
-      return {
-        "src": RegExp(r'file:\s*"([^"]+)"').firstMatch(t)!.group(1)!,
-        "type": 'm3u8',
-        "referer": '',
-      };
+      switch (provider) {
+        case StreamProvider.Streamwish:
+          return _StreamWish(response.data!);
+        case StreamProvider.StreamTape:
+          return _StreamTape(response.data!);
+        case StreamProvider.DoodStream:
+          return _DoodStream(response.data!);
+      }
     } catch (e) {
       print(e);
       return {"src": "not found"};
     }
+  }
+
+  Future<Map> _StreamWish(String s) async {
+    try {
+      var match =
+          RegExp(r'<li class="streamwish" rel="\d+" data-video="([^"]+)">')
+              .firstMatch(s);
+      if (match.runtimeType != Null) {
+        var u = match![1];
+        print(u.runtimeType);
+        var v = await dio.get(u!,
+            options: Options(
+              headers: {'Referer': baseURL},
+            ));
+        var t = await v.data;
+        return {
+          "src": RegExp(r'file:\s*"([^"]+)"').firstMatch(t)!.group(1)!,
+          "type": 'm3u8',
+          "referer": '',
+        };
+      }
+    } catch (e) {}
+    return {"src": "not found"};
+  }
+
+  Future<Map> _StreamTape(String s) async {
+    try {
+      var tape = await (await dio.get(
+              RegExp(r'<li class="streamtape" rel="\d+" data-video="([^"]+)">')
+                  .firstMatch(s)![1]!,
+              options: Options(
+                headers: {'Referer': baseURL},
+              )))
+          .data;
+      return {
+        "src":
+            "https://streamtape.com/get_video?id=${RegExp(r"defg([^']+)").allMatches(tape).last[0]!.split("?id=").last}&stream=1",
+        "type": "video/mp4",
+        "referer": 'https://streamtape.com',
+      };
+    } catch (e) {}
+    return {"src": "not found"};
+  }
+
+  Future<Map> _DoodStream(String s) async {
+    var doodybaseurl = "https://d0000d.com";
+    var url = RegExp(r'<li class="doodstream" rel="\d+" data-video="([^"]+)">')
+        .firstMatch(s)![1];
+    try {
+      var dood = await (await dio.get(url!,
+              options: Options(
+                headers: {'Referer': baseURL},
+              )))
+          .data;
+      var resp = await (await dio.get(
+              doodybaseurl +
+                  "/pass_md5/" +
+                  RegExp(r"\$.get\('\/pass_md5\/([^']+)'")
+                      .firstMatch(dood)![1]!,
+              options: Options(
+                headers: {'Referer': doodybaseurl},
+              )))
+          .data;
+      print(RegExp(r'\?token=([^&]+)').firstMatch(dood)![1]);
+      return {
+        "src": dood.contains("src: data + makePlay()")
+            ? resp +
+                "urcodesucks?token=${RegExp(r'\?token=([^&]+)').firstMatch(dood)![1]}&expiry=${DateTime.now().millisecondsSinceEpoch}"
+            : resp.data,
+        "type": "video/mp4",
+        "referer": doodybaseurl
+      };
+    } catch (e) {}
+    return {"src": "not found"};
+  }
+
+  Future<String> makePlay() async {
+    var a = '';
+    var t = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    var n = t.length;
+
+    for (var o = 0; o < 10; o++) {
+      a += t[DateTime.now().millisecondsSinceEpoch % n];
+    }
+
+    return a +
+        "?token=t1e1n0k782yaf8zvjswxli6g&expiry=${DateTime.now().millisecondsSinceEpoch}";
   }
 }
 
@@ -457,3 +539,5 @@ class Actor {
     this.movies,
   });
 }
+
+enum StreamProvider { Streamwish, StreamTape, DoodStream }

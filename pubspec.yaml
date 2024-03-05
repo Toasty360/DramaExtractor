@@ -14,7 +14,12 @@ dependencies:
   dio:
   html:
   toast:
-
+  hive:
+  hive_flutter:
+  path_provider: ^2.1.2
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  test:
+  hive_generator:
+  build_runner:

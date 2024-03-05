@@ -1,83 +1,51 @@
-// ignore_for_file: prefer_const_constructors
-import '../lib/extractor.dart';
-import 'package:flutter/material.dart';
-import 'package:toast/toast.dart';
+import 'package:extractor/model.dart';
+import 'package:test/test.dart';
+import "../lib/extractor.dart";
 
-class Test extends StatefulWidget {
-  const Test({super.key});
+void main() {
+  Scraper extractor = Scraper("https://dramacool.pa/", "https://asianwiki.co");
 
-  @override
-  State<Test> createState() => _TestState();
-}
-
-class _TestState extends State<Test> {
-  String baseURL = "https://dramacool.pa/";
-  String wikiURL = "https://asianwiki.co";
-  late Scraper extractor = Scraper(baseURL, wikiURL);
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    ToastContext().init(context);
-
-    return Scaffold(
-      body: Center(
-        child: ListView(children: [
-          TextButton(
-              onPressed: () {
-                extractor
-                    .fetchInfo("kimi-ga-kokoro-wo-kuretakara")
-                    .then((value) => Toast.show(value.id ?? " no data"));
-              },
-              child: Text("Info")),
-          TextButton(
-              onPressed: () {
-                extractor
-                    .trending()
-                    .then((value) => Toast.show(value.length.toString()));
-              },
-              child: Text("trending")),
-          TextButton(
-              onPressed: () {
-                extractor
-                    .fetchPopular()
-                    .then((value) => Toast.show(value.length.toString()));
-              },
-              child: Text("popular")),
-          TextButton(
-              onPressed: () {
-                extractor
-                    .recent()
-                    .then((value) => Toast.show(value.length.toString()));
-              },
-              child: Text("recent")),
-          TextButton(
-              onPressed: () {
-                extractor
-                    .fetchActor("/star/cha-soo-yeon")
-                    .then((value) => Toast.show(value.name ?? "not found"));
-              },
-              child: Text("actor info")),
-          TextButton(
-              onPressed: () {
-                extractor
-                    .search("hero", "1")
-                    .then((value) => Toast.show(value.length.toString()));
-              },
-              child: Text("search")),
-          TextButton(
-              onPressed: () {
-                extractor
-                    .fetchStreamingLinks(
-                        "/captivating-the-king-2024-episode-5.html")
-                    .then((value) => Toast.show(value["src"]));
-              },
-              child: Text("streming links")),
-        ]),
-      ),
-    );
-  }
+  test('Should return drama name', () async {
+    var data = await extractor.fetchInfo("queen-of-tears");
+    expect(data.title, isNot(null));
+  });
+  test('Should return list of trending drama', () async {
+    var data = await extractor.trending();
+    expect(data.length, isNot(0));
+  });
+  test('Should return list of trending drama', () async {
+    var data = await extractor.recent();
+    expect(data.length, isNot(0));
+  });
+  test('Should return list of popular drama', () async {
+    var data = await extractor.fetchPopular();
+    expect(data.length, isNot(0));
+  });
+  test('Should return actor data', () async {
+    var data = await extractor.fetchActor("/star/cha-soo-yeon");
+    expect(data.name, isNot(null));
+    expect(data.movies, isNot(null));
+  });
+  test('Should return search data for hero', () async {
+    var data = await extractor.search("hero", "1");
+    expect(data.length, isNot(0));
+  });
+  test('Should return StreamTape links', () async {
+    var data = await extractor.fetchStreamingLinks(
+        "/captivating-the-king-2024-episode-10.html",
+        StreamProvider.StreamTape);
+    expect(data["src"], isNot("not found"));
+  });
+  test('Should return Streamwish links', () async {
+    var data = await extractor.fetchStreamingLinks(
+        "/captivating-the-king-2024-episode-10.html",
+        StreamProvider.Streamwish);
+    expect(data["src"], isNot("not found"));
+  });
+  test('Should return DoodStream links', () async {
+    var data = await extractor.fetchStreamingLinks(
+        "/captivating-the-king-2024-episode-10.html",
+        StreamProvider.DoodStream);
+    expect(data["src"], isNot("not found"));
+  });
 }

@@ -2,11 +2,12 @@
 
 import 'package:dio/dio.dart';
 import 'package:html/parser.dart';
-
+import 'dart:convert';
+import 'package:encrypt/encrypt.dart' as encrypt;
 import 'model.dart';
 
 class Scraper {
-  String baseURL = "https://dramacool.pa";
+  String baseURL = "https://asianc.co/";
   String wikiURL = "https://asianwiki.co";
   Dio dio = Dio();
 
@@ -350,10 +351,11 @@ class Scraper {
     return actor;
   }
 
-  Future<Map> fetchStreamingLinks(String id, StreamProvider provider) async {
+  Future<Map> fetchStreamingLinks(String id, {StreamProvider? provider}) async {
     try {
+      print(baseURL + id);
       final response = await dio.get(
-        '$baseURL/$id',
+        baseURL + id,
         options: Options(
           headers: {
             'Referer': baseURL,
@@ -363,15 +365,21 @@ class Scraper {
           },
         ),
       );
+      print(response.statusCode);
 
-      switch (provider) {
-        case StreamProvider.Streamwish:
-          return _StreamWish(response.data!);
-        case StreamProvider.StreamTape:
-          return _StreamTape(response.data!);
-        case StreamProvider.DoodStream:
-          return _DoodStream(response.data!);
+      if (response.statusCode == 200) {
+        switch (provider) {
+          case StreamProvider.Streamwish:
+            return _StreamWish(response.data!);
+          case StreamProvider.StreamTape:
+            return _StreamTape(response.data!);
+          case StreamProvider.DoodStream:
+            return _DoodStream(response.data!);
+          default:
+            return Asianload().extract(response.data!);
+        }
       }
+      throw new Exception("Something went wrong");
     } catch (e) {
       return {"src": "not found"};
     }
@@ -449,5 +457,40 @@ class Scraper {
       };
     } catch (e) {}
     return {"src": "not found"};
+  }
+}
+
+class Asianload {
+  final String baseURL = "https://asianc.co/";
+  final key = encrypt.Key.fromBase64(
+      base64.encode(utf8.encode("93422192433952489752342908585752")));
+  final iv =
+      encrypt.IV.fromBase64(base64.encode(utf8.encode("9262859232435825")));
+  String _decryptAES(String encryptedText) {
+    final encrypter =
+        encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
+    final decrypted = encrypter.decrypt64(encryptedText, iv: iv);
+    return decrypted;
+  }
+
+  String _encryptAES(String text) {
+    final encrypter =
+        encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
+    final encrypted = encrypter.encrypt(text, iv: iv);
+    return encrypted.base64;
+  }
+
+  Future<Map> extract(String resp) async {
+    var url =
+        "https:" + RegExp(r'data-video="(.*?)"').firstMatch(resp)!.group(1)!;
+    var resp1 = await Dio().get(url);
+    var hash = RegExp(r'data-value="(.*?)"').firstMatch(resp1.data)!.group(1);
+    var data2 = _decryptAES(hash!);
+    var data3 = data2.substring(0, data2.indexOf("&"));
+    var params =
+        "id=${Uri.encodeComponent(_encryptAES(data3))}${data2.substring(data2.indexOf("&"))}&${Uri.encodeComponent(data3)}";
+    var encodedShit =
+        await Dio().get("https://pladrac.net/encrypt-ajax.php?" + params);
+    return jsonDecode(_decryptAES(jsonDecode(encodedShit.data)["data"]));
   }
 }
